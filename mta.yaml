@@ -1,0 +1,66 @@
+ID: S4Security
+_schema-version: "2.1"
+description: S4 security
+parameters:
+  deploy_mode: html5-repo
+version: 0.0.1
+modules:
+  - name: s4security-approuter
+    type: approuter.nodejs
+    path: s4security-approuter
+    parameters:
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: S4Security_html5_repo_runtime
+  - name: S4Security_ui_deployer
+    type: com.sap.html5.application-content
+    path: S4Security_ui_deployer
+    requires:
+      - name: S4Security_html5_repo_host
+  - name: S4Security-db
+    type: hdb
+    path: db
+    parameters:
+      memory: 256M
+      disk-quota: 512M
+    requires:
+      - name: S4Security-db-hdi-container
+  - name: S4Security-srv
+    type: java
+    path: srv
+    parameters:
+      memory: 1024M
+    provides:
+      - name: srv_api
+        properties:
+          url: ${default-url}
+    requires:
+      - name: S4Security-db-hdi-container
+        properties:
+          JBP_CONFIG_RESOURCE_CONFIGURATION: '[tomcat/webapps/ROOT/META-INF/context.xml:
+            {"service_name_for_DefaultDB" : "~{hdi-container-name}"}]'
+      - name: S4Security-uaa
+resources:
+  - name: S4Security_html5_repo_runtime
+    parameters:
+      service-plan: app-runtime
+      service: html5-apps-repo
+    type: org.cloudfoundry.managed-service
+  - name: S4Security_html5_repo_host
+    parameters:
+      service-plan: app-host
+      service: html5-apps-repo
+    type: org.cloudfoundry.managed-service
+  - name: S4Security-db-hdi-container
+    type: com.sap.xs.hdi-container
+    properties:
+      hdi-container-name: ${service-name}
+  - name: S4Security-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service-plan: application
+      service: xsuaa
+      config:
+        xsappname: S4Security-${space}
+        tenant-mode: dedicated
